@@ -3,8 +3,9 @@ from myexceptions import ConfigFileEmpty
 
 
 def check_config_file(path):
-    if os.getcwd().endswith("tools"):
+    while not os.getcwd().endswith('mySC'):
         os.chdir('..')
+    path = os.path.join(os.getcwd(), path)
     if os.path.exists(path):
         if not os.path.getsize(path):
             raise ConfigFileEmpty()

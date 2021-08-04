@@ -1,6 +1,6 @@
 import pygame
 from classes import Client
-from network import Network
+from server_dir.network import Network
 
 pygame.init()
 font_fps = pygame.font.SysFont("Arial", 18)

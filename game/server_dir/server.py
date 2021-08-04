@@ -1,3 +1,4 @@
+import os
 import re
 import socket
 from _thread import *
@@ -24,21 +25,25 @@ class Server(socket.socket):
         self.connected_users = {}
         self.max_connected_users = 1
 
-        # {'r': (rhost, rport), 'c': (conn, addr)}
-        self.last_connected_user = {'r': [], 'c': []}
+        # {'r': (rhost, rport), 'c': (addr)}
+        self.last_connected_user = {'r': [], 'c': ()}
 
+        host = socket.gethostname()
+        print(host)
         self.bind((host, port))
-        self.tunnel = self.create_tunnel(port)
+        # self.tunnel = self.create_tunnel(port)
+        self.tunnel = None
         self.listen(1)
 
-        self.code = self.create_code()
+        # self.code = self.create_code()
+        self.code = '123'
         print('\nSERVER IS RUNNING\n')
         print(self.tunnel)
         start_new_thread(self.start_listening, ())
 
     def create_tunnel(self, port):
         try:
-            config_file_path = '../.config/config.yml'
+            config_file_path = 'game\\server_dir\\.config\\config.yml'
             check_config_file(config_file_path)
             conf.get_default().config_path = config_file_path
             conf.get_default().log_event_callback = self.log_callback
@@ -84,11 +89,15 @@ class Server(socket.socket):
             return True
         return False
 
+    def disconnect(self):
+        self.close()
+
     def start_listening(self):
         while True:
             conn, addr = self.accept()
-            self.last_connected_user['c'] = [conn, addr]
-            print(f'Connected to: {self.last_connected_user["r"]}')
+            self.last_connected_user['c'] = addr
+            print(f'Connected to: {addr} // '
+                  f'{self.last_connected_user["r"]}')
             # Запоминаем игрока с которым шла игра
             if len(self.connected_users) < self.max_connected_users:
                 self.connected_users[conn] = self.last_connected_user
@@ -99,7 +108,8 @@ class Server(socket.socket):
         conn.send(str.encode('Успешное подключение\n'))
         while True:
             try:
-                self.received_data = pickle.loads(conn.recv(4096))
+                # self.received_data = conn.recv(2048).decode()
+                self.received_data = pickle.loads(conn.recv(2048))
                 if not self.received_data:
                     break
                 else:
@@ -109,7 +119,6 @@ class Server(socket.socket):
             except Exception as e:
                 print(e)
                 break
-
         print("------ Lost connection ------")
         try:
             pl = self.connected_users.pop(conn)

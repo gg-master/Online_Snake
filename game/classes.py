@@ -16,6 +16,8 @@ class Client:
         if event is not None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    if self.type_game == '2_1':
+                        self.game.disconnect()
                     self.type_game = self.game = None
         if self.type_game is None:
             self.menu.update(event)
@@ -105,6 +107,7 @@ class GameOnline(Game):
                                          pygame.Color('white'))
         if self.num_pl == 2:
             self.netw = Network(str(type_game[-1]))
+            self.food.kill()
         self.player_2 = Snake(self,
                               self.players_pos[1 if self.num_pl == 1 else 0],
                               pygame.Color('blue'))
@@ -130,15 +133,21 @@ class GameOnline(Game):
 
     def create_data(self):
         if self.num_pl == 1:
-            return self.player.get_data().update(self.food.get_data())
+            data = self.player.get_data()
+            data.update(self.food.get_data())
+            return data
         else:
             return self.player.get_data()
 
     def set_data(self, data):
         if data is not None:
+            # print(data)
             self.player_2.set_data(data)
             if self.num_pl == 2:
                 self.food.set_data(data)
+
+    def disconnect(self):
+        self.serv.disconnect()
 
 
 class Snake:
