@@ -5,8 +5,8 @@ import websocket
 class Network(websocket.WebSocket):
     def __init__(self):
         super().__init__()
-        self.addr = "ws://localhost:8080"
-        # self.addr = "ws://my-server-on-websockets.herokuapp.com"
+        # self.addr = "ws://localhost:8080"
+        self.addr = "ws://my-server-on-websockets.herokuapp.com"
 
         self.conn_resp = self.connect_to_server()
 
