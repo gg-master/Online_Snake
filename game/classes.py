@@ -1,8 +1,7 @@
 import pygame
 import random
-from menu_cl import MainMenu
-from server_dir.server import Server
-from server_dir.network import Network
+from mySC.game.menu_cl import MainMenu
+from network import Network
 
 
 class Client:
@@ -100,13 +99,21 @@ class GameOnline(Game):
     def __init__(self, screen_size, type_game: list):
         super().__init__(screen_size, type_game[1])
         self.num_pl = type_game[1]
+
+        self.netw = Network()
+        print(self.netw.get_conn_resp())
         if self.num_pl == 1:
-            self.serv = Server()
             code_font = pygame.font.Font(None, 20)
-            self.code = code_font.render(f'{self.serv.get_code()}', True,
+
+            server_resp = self.netw.send_get({'type': 'create_lobby'})
+            # if server_resp['lobby'] != 'success':
+            print(server_resp)
+            self.code = code_font.render(f'{server_resp["lobby_code"]}', True,
                                          pygame.Color('white'))
         if self.num_pl == 2:
-            self.netw = Network(str(type_game[-1]))
+            server_resp = self.netw.send_get({'type': 'join_player',
+                                              'lobby_code': str(type_game[-1])})
+            print(server_resp)
             self.food.kill()
         self.player_2 = Snake(self,
                               self.players_pos[1 if self.num_pl == 1 else 0],
@@ -124,12 +131,11 @@ class GameOnline(Game):
         if self.num_pl == 1:
             if not self.food.alive():
                 self.spawn_new_food()
-            self.serv.set_send_data(self.create_data())
-            self.set_data(self.serv.get_received_data())
-            if not self.serv.isready():
-                self.player_2.kill()
-        else:
-            self.set_data(self.netw.send_get(self.create_data()))
+
+            # if not self.serv.isready():
+            #     self.player_2.kill()
+        data = {'type': 'game_data', 'data': self.create_data()}
+        self.set_data(self.netw.send_get(data))
 
     def create_data(self):
         if self.num_pl == 1:
@@ -147,7 +153,8 @@ class GameOnline(Game):
                 self.food.set_data(data)
 
     def disconnect(self):
-        self.serv.disconnect()
+        # self.serv.disconnect()
+        pass
 
 
 class Snake:

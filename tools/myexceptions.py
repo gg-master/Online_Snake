@@ -1,2 +1,0 @@
-class ConfigFileEmpty(FileExistsError):
-    pass

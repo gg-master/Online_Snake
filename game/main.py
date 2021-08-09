@@ -1,6 +1,5 @@
 import pygame
-from classes import Client
-from server_dir.network import Network
+from mySC.game.classes import Client
 
 pygame.init()
 font_fps = pygame.font.SysFont("Arial", 18)
@@ -54,7 +53,7 @@ def main():
 
 if __name__ == '__main__':
     WIDTH, HEIGHT = 950, 750
-    FPS = 60
+    FPS = 5
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
     monitor_size = [pygame.display.Info().current_w,
                     pygame.display.Info().current_h]
