@@ -1,5 +1,5 @@
 import pygame
-from mySC.game.classes import Client
+from classes import Client
 
 pygame.init()
 font_fps = pygame.font.SysFont("Arial", 18)

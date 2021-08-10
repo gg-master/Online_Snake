@@ -1,6 +1,6 @@
 import pygame
 import random
-from mySC.game.menu_cl import MainMenu
+from menu_cl import Menu
 from network import Network
 
 
@@ -15,6 +15,8 @@ class Client:
         if event is not None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    if self.type_game.startswith('2'):
+                        self.game.disconnect()
                     self.type_game = self.game = None
         if self.type_game is None:
             self.menu.update(event)
@@ -172,6 +174,7 @@ class GameOnline(Game):
         # Из полученных данных с сервера истанавливаем состояния
         # для еды и игрока
         if data is not None and 'type' not in data:
+            print(data)
             self.player_2.set_data(data)
             # Проверяем также и счетчит тайм-аута
             now = pygame.time.get_ticks()
@@ -188,6 +191,9 @@ class GameOnline(Game):
         if self.player_2.alive() and data is None:
             self.player_2.kill()
             self.player_2.eat_food = False
+
+    def disconnect(self):
+        self.netw.disconnect()
 
 
 class Snake:
