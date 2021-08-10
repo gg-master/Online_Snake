@@ -10,8 +10,8 @@ from _thread import *
 class Network:
     def __init__(self):
         super().__init__()
-        self.addr = "ws://localhost:8080"
-        # self.addr = "ws://my-server-on-websockets.herokuapp.com"
+        # self.addr = "ws://localhost:8080"
+        self.addr = "ws://my-server-on-websockets.herokuapp.com"
 
         self.send_data = None
         self.received_data = None
