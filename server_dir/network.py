@@ -10,8 +10,8 @@ from _thread import *
 class Network:
     def __init__(self):
         super().__init__()
-        # self.addr = "ws://localhost:8080"
-        self.addr = "ws://my-server-on-websockets.herokuapp.com"
+        self.addr = "ws://localhost:8080"
+        # self.addr = "ws://my-server-on-websockets.herokuapp.com"
 
         self.send_data = None
         self.received_data = None
@@ -65,9 +65,7 @@ class Network:
             # Начинаем отправлять данные
             while True:
                 if self.close_conn:
-                    loop = asyncio.get_event_loop()
-                    loop.add_signal_handler(
-                        signal.SIGTERM, loop.create_task, socket.close())
+                    return None
                 # Если изменились данные, то их необходимо отправить на сервер
                 if self.send_data is not None and \
                         self.last_vcode != self.send_data['vcode']:

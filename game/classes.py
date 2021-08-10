@@ -1,6 +1,6 @@
 import pygame
 import random
-from menu_cl import Menu
+from menu_cl import MainMenu
 from network import Network
 
 
@@ -15,8 +15,9 @@ class Client:
         if event is not None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if self.type_game.startswith('2'):
-                        self.game.disconnect()
+                    if self.type_game is not None:
+                        if self.type_game.startswith('2'):
+                            self.game.disconnect()
                     self.type_game = self.game = None
         if self.type_game is None:
             self.menu.update(event)
