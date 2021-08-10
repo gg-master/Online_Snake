@@ -57,6 +57,10 @@ class Lobby:
         raise JoiningFailed('Joining is not possible. Too many players')
 
     def remove_user(self, user):
+        if self.ishost(user):
+            self.send_data = None
+        else:
+            self.received_data = None
         self.connected_players.remove(user)
 
 
@@ -88,6 +92,8 @@ class User:
                 data = {'type': 'sys', 'connection': 'success'}
             elif command == 'success_joining':
                 data = {'type': 'sys', 'joining': 'success'}
+            elif command == 'NoneTypeData':
+                data = {'type': 'sys', 'excpt': 'NoneTypeData'}
         await self.socket.send(json.dumps(data))
 
     def __str__(self):
@@ -145,6 +151,9 @@ class Server:
             try:
                 received_data = user.get_received_data(await websocket.recv())
                 print(f"{received_data}")
+                if received_data is None:
+                    await user.send_data(command='NoneTypeData')
+                    continue
                 # Если была подана команда на создание лобби, то создаем его
                 if received_data['type'] == 'create_lobby':
                     lobby = Lobby(host=user, server=self)
@@ -168,7 +177,7 @@ class Server:
                                               'lobby': 'Lobby not found'})
                         continue
                     # Если пользователь является хостом, то он устанавливает
-                    # отсылаемые данные и получает received данные
+                    # send данные и получает received данные
                     if user.lobby.ishost(user):
                         user.lobby.set_send_data(received_data['data'])
                         await user.send_data(user.lobby.get_received_data())

@@ -1,4 +1,3 @@
 websockets
-websocket-client
 pygame
 pygame_gui

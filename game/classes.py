@@ -15,8 +15,6 @@ class Client:
         if event is not None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if self.type_game == '2_1':
-                        self.game.disconnect()
                     self.type_game = self.game = None
         if self.type_game is None:
             self.menu.update(event)
@@ -60,10 +58,13 @@ class Game:
         if event is not None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
+                    eat_food = self.player.eat_food
                     if not self.player.alive():
                         self.player = Snake(
                             self, self.players_pos[self.player_number],
                             pygame.Color('green'))
+                    # Устанавливаем игроку флаг о еде.
+                    self.player.eat_food = eat_food
         self.pl_text = self.font.render(f'Alive | {self.player.points} points'
                                         if self.player.alive() else
                                         f'Died | {self.player.points} points '
@@ -100,24 +101,43 @@ class GameOnline(Game):
         super().__init__(screen_size, type_game[1])
         self.num_pl = type_game[1]
 
+        # Счетчик пропуска кадров. Поистечении wait_count игра будет
+        # считывать данные другого игркоа о событии "поедания еды"
+        self.max_wait_count = self.wait_count = 10
+
+        # Создаем класс, который будет общаться с сервером
         self.netw = Network()
+        # Получаем ответ об успешном подключении
+        # TODO добавить доп окно если пароль был неверен или коннект
+        #  с сервером не произошел
+        while self.netw.get_conn_resp() is None:
+            pass
         print(self.netw.get_conn_resp())
+
+        # Если мы являемся хостом (игроком № 1 в лобби) то сервер нам
+        # возвращает код лобби, который отображается в правом верхнем углу
         if self.num_pl == 1:
             code_font = pygame.font.Font(None, 20)
-
-            server_resp = self.netw.send_get({'type': 'create_lobby'})
-            # if server_resp['lobby'] != 'success':
-            print(server_resp)
+            self.netw.set_send_get_recv({'type': 'create_lobby'})
+            server_resp = self.netw.wait_received_data('lobby_code')
             self.code = code_font.render(f'{server_resp["lobby_code"]}', True,
                                          pygame.Color('white'))
-        if self.num_pl == 2:
-            server_resp = self.netw.send_get({'type': 'join_player',
-                                              'lobby_code': str(type_game[-1])})
-            print(server_resp)
+            self.player.eat_food = True
+        # Если игрок является №2 в лобби, то игрок отсылая код лобби,
+        # присоединяется к лобби
+        else:
+            self.netw.set_send_get_recv({'type': 'join_player',
+                                         'lobby_code': str(type_game[-1])})
+            server_resp = self.netw.wait_received_data('joining')
+            # Убиваем еду, чтобы установить новое значение от хоста
             self.food.kill()
+        print(server_resp)
+        # Создаем второго игрока
         self.player_2 = Snake(self,
                               self.players_pos[1 if self.num_pl == 1 else 0],
                               pygame.Color('blue'))
+        # Убиваем его, чтобы не отображать на карте.
+        # Далее его свойства установятся из сервера
         self.player_2.kill()
 
     def draw(self, screen):
@@ -128,33 +148,44 @@ class GameOnline(Game):
 
     def update(self, event=None):
         super().update(event)
-        if self.num_pl == 1:
-            if not self.food.alive():
-                self.spawn_new_food()
-
-            # if not self.serv.isready():
-            #     self.player_2.kill()
+        # Если еда уничтожена и наш игрок является тем, кто ее съел,
+        # то включаем отсчет, в течении которого игра будет посылать данные о
+        # том, что НАШ игрок съел еду, и не будет считывать инфу о
+        # состоянии другого игрока по отношении к еде
+        if not self.food.alive() and self.player.eat_food:
+            self.wait_count = self.max_wait_count
+            self.spawn_new_food()
+        # Создаем данные, которые отправятся на сервер
         data = {'type': 'game_data', 'data': self.create_data()}
-        self.set_data(self.netw.send_get(data))
+        self.set_data(self.netw.set_send_get_recv(data))
 
     def create_data(self):
-        if self.num_pl == 1:
-            data = self.player.get_data()
+        # Создаем данные для отправки на сервер
+        data = self.player.get_data()
+        # Если наш игрок съел еду, то добавляем в словарь данные о еде
+        if self.player.eat_food:
             data.update(self.food.get_data())
-            return data
-        else:
-            return self.player.get_data()
+        return data
 
     def set_data(self, data):
-        if data is not None:
-            # print(data)
+        # Из полученных данных с сервера истанавливаем состояния
+        # для еды и игрока
+        if data is not None and 'type' not in data:
             self.player_2.set_data(data)
-            if self.num_pl == 2:
+            # Проверяем также и счетчит тайм-аута
+            if self.player_2.eat_food \
+                    and self.player.eat_food and self.wait_count == 0:
+                self.player.eat_food = False
+            self.wait_count = max(0, self.wait_count - 1)
+            # Если наш игрок не ел еду, то мы устанавливаем ему
+            # значения принятые из сервера
+            if not self.player.eat_food:
                 self.food.set_data(data)
-
-    def disconnect(self):
-        # self.serv.disconnect()
-        pass
+        # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
+        # поступают, то мы убиваем этого игрока.
+        # Т.е считаем его за отключившегося
+        if self.player_2.alive() and data is None:
+            self.player_2.kill()
 
 
 class Snake:
@@ -172,6 +203,8 @@ class Snake:
         self.color = color
         self.killed = False
 
+        self.eat_food = False
+
         self.difficult_delta = 2
         self.points = 0
 
@@ -179,17 +212,25 @@ class Snake:
         self.start_timer = pygame.time.get_ticks()
 
     def get_data(self):
-        return {
-            'head': (self.head.x, self.head.y),
-            'parts': [[i.x, i.y] for i in self.parts],
-            'killed_sn': self.killed
+        data = {
+            'killed_sn': self.killed,
+            'eat_food': self.eat_food
         }
+        if not self.killed:
+            data.update(
+                {
+                    'head': (self.head.x, self.head.y),
+                    'parts': [[i.x, i.y] for i in self.parts]
+                })
+        return data
 
     def set_data(self, data):
-        self.head.x, self.head.y = data['head']
         self.killed = data['killed_sn']
-        self.parts = [pygame.Rect((i[0], i[1]), (self.w, self.h))
-                      for i in data['parts']]
+        self.eat_food = data['eat_food']
+        if not self.killed:
+            self.head.x, self.head.y = data['head']
+            self.parts = [pygame.Rect((i[0], i[1]), (self.w, self.h))
+                          for i in data['parts']]
 
     def draw(self, screen):
         if not self.killed:
@@ -229,6 +270,7 @@ class Snake:
             self.eating_food(self.game.food)
 
     def eating_food(self, food):
+        self.eat_food = True
         food.kill()
         self.points += 1
         self.delay -= self.difficult_delta
