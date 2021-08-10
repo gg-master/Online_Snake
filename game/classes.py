@@ -1,6 +1,6 @@
 import pygame
 import random
-from menu_cl import Menu
+from menu_cl import MainMenu
 from network import Network
 
 
