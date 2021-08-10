@@ -61,7 +61,7 @@ class Lobby:
             self.send_data = None
         else:
             self.received_data = None
-        self.connected_players.remove(user)
+            self.connected_players.remove(user)
 
 
 class User:
@@ -124,8 +124,7 @@ class Server:
             # TODO Доработать если отключается хост
             if user.lobby.ishost(user):
                 del self.lobbies[user.lobby.get_code()]
-            else:
-                user.lobby.remove_user(user)
+            user.lobby.remove_user(user)
 
     @staticmethod
     def get_port():

@@ -187,6 +187,7 @@ class GameOnline(Game):
         # Т.е считаем его за отключившегося
         if self.player_2.alive() and data is None:
             self.player_2.kill()
+            self.player_2.eat_food = False
 
 
 class Snake:
@@ -317,8 +318,13 @@ class Food:
         }
 
     def set_data(self, data):
-        self.rect.x, self.rect.y = data['food']
-        self.killed = data['killed_fd']
+        try:
+            self.rect.x, self.rect.y = data['food']
+            self.killed = data['killed_fd']
+        except Exception as e:
+            # TODO разобраться с багом из-за задержек
+            print(data)
+            raise e
 
     def create_pos(self):
         return (random.randrange(self.map.left + 50, self.map.right - 50),
