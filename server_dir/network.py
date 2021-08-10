@@ -65,9 +65,10 @@ class Network:
             # Начинаем отправлять данные
             while True:
                 if self.close_conn:
-                    loop = asyncio.get_event_loop()
-                    loop.add_signal_handler(
-                        signal.SIGTERM, loop.create_task, socket.close())
+                    return None
+                    # loop = asyncio.get_event_loop()
+                    # loop.add_signal_handler(
+                    #     signal.SIGTERM, loop.create_task, socket.close())
                 # Если изменились данные, то их необходимо отправить на сервер
                 if self.send_data is not None and \
                         self.last_vcode != self.send_data['vcode']:
