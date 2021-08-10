@@ -103,7 +103,7 @@ class GameOnline(Game):
 
         # Счетчик пропуска кадров. Поистечении wait_count игра будет
         # считывать данные другого игркоа о событии "поедания еды"
-        self.max_wait_count = self.wait_count = 10
+        self.max_wait_count = self.wait_count = 30
 
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
