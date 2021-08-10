@@ -107,7 +107,7 @@ class GameOnline(Game):
         # Счетчик пропуска кадров. Поистечении wait_count игра будет
         # считывать данные другого игркоа о событии "поедания еды"
         self.start_time_out = pygame.time.get_ticks()
-        self.wait_delay = 2000
+        self.wait_delay = 1000
 
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
@@ -182,6 +182,8 @@ class GameOnline(Game):
             if self.player_2.eat_food and self.player.eat_food and \
                     now - self.start_time_out > self.wait_delay:
                 self.player.eat_food = False
+            if self.player.eat_food == self.player_2.eat_food:
+                self.player.eat_food = True
             # Если наш игрок не ел еду, то мы устанавливаем ему
             # значения принятые из сервера
             if not self.player.eat_food:
@@ -191,7 +193,7 @@ class GameOnline(Game):
         # Т.е считаем его за отключившегося
         if self.player_2.alive() and data is None:
             self.player_2.kill()
-            self.player_2.eat_food = False
+            self.player.eat_food = True
 
     def disconnect(self):
         self.netw.disconnect()
