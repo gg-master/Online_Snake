@@ -182,11 +182,12 @@ class GameOnline(Game):
             if self.player_2.eat_food and self.player.eat_food and \
                     now - self.start_time_out > self.wait_delay:
                 self.player.eat_food = False
+
             if self.player.eat_food == self.player_2.eat_food:
                 self.player.eat_food = True
             # Если наш игрок не ел еду, то мы устанавливаем ему
             # значения принятые из сервера
-            if not self.player.eat_food:
+            if not self.player.eat_food and self.player_2.eat_food:
                 self.food.set_data(data)
         # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
         # поступают, то мы убиваем этого игрока.
