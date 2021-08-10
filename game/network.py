@@ -1,6 +1,5 @@
 import json
 import random
-import signal
 import string
 import websockets
 import asyncio

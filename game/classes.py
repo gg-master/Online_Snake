@@ -175,7 +175,8 @@ class GameOnline(Game):
         # Из полученных данных с сервера истанавливаем состояния
         # для еды и игрока
         if data is not None and 'type' not in data:
-            print(data)
+            # TODO строчка для дебага
+            # print(data)
             self.player_2.set_data(data)
             # Проверяем также и счетчит тайм-аута
             now = pygame.time.get_ticks()
