@@ -107,7 +107,7 @@ class GameOnline(Game):
         # Счетчик пропуска кадров. Поистечении wait_count игра будет
         # считывать данные другого игркоа о событии "поедания еды"
         self.start_time_out = pygame.time.get_ticks()
-        self.wait_delay = 1000
+        self.wait_delay = 2000
 
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
@@ -180,16 +180,17 @@ class GameOnline(Game):
             self.player_2.set_data(data)
             # Проверяем также и счетчит тайм-аута
             now = pygame.time.get_ticks()
+            print('1', self.player.eat_food, self.player_2.eat_food)
             if self.player_2.eat_food and self.player.eat_food and \
                     now - self.start_time_out > self.wait_delay:
                 self.player.eat_food = False
-
-            if self.player.eat_food == self.player_2.eat_food:
-                self.player.eat_food = True
+            if self.player.eat_food and not self.player_2.eat_food:
+                self.start_time_out -= self.wait_delay
             # Если наш игрок не ел еду, то мы устанавливаем ему
             # значения принятые из сервера
             if not self.player.eat_food and self.player_2.eat_food:
                 self.food.set_data(data)
+            print('2', self.player.eat_food, self.player_2.eat_food)
         # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
         # поступают, то мы убиваем этого игрока.
         # Т.е считаем его за отключившегося
@@ -275,7 +276,8 @@ class Snake:
             self.kill()
         if self.head.top < self.game.map.top:
             self.kill()
-        if self.head.bottom + self.head.h > self.game.map.bottom:
+        if self.head.bottom + self.head.h >=\
+                self.game.map.bottom - self.head.h:
             self.kill()
         if any(map(lambda x: self.head.colliderect(x), self.parts)):
             self.kill()
