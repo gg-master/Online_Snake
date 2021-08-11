@@ -107,7 +107,7 @@ class GameOnline(Game):
         # Счетчик пропуска кадров. Поистечении wait_count игра будет
         # считывать данные другого игркоа о событии "поедания еды"
         self.start_time_out = pygame.time.get_ticks()
-        self.wait_delay = 2000
+        self.wait_delay = 10_000
 
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
