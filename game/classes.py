@@ -126,7 +126,7 @@ class GameOnline(Game):
             server_resp = self.netw.wait_received_data('lobby_code')
             self.code = code_font.render(f'{server_resp["lobby_code"]}', True,
                                          pygame.Color('white'))
-            self.player.eat_food = True
+            self.player.eat_food = self.player.last_eat_food = True
         # Если игрок является №2 в лобби, то игрок отсылая код лобби,
         # присоединяется к лобби
         else:
@@ -180,17 +180,43 @@ class GameOnline(Game):
             self.player_2.set_data(data)
             # Проверяем также и счетчит тайм-аута
             now = pygame.time.get_ticks()
-            print('1', self.player.eat_food, self.player_2.eat_food)
+            time_delta = now - self.start_time_out
+            print('1', self.player.eat_food, self.player_2.eat_food,
+                  time_delta > self.wait_delay)
+            # Если наш игрок съел еду, и другой игрок съел еду, и
+            # время тайм-аута (в течении которого мы отправляли серверу
+            # информацию, что мы съели еду) вышло, то мы считаем, что другой
+            # игрок съел еду, а значит мы должны установить флаг о том, что
+            # еду мы не ели
             if self.player_2.eat_food and self.player.eat_food and \
-                    now - self.start_time_out > self.wait_delay:
+                    time_delta > self.wait_delay:
+                self.player.last_eat_food = self.player.eat_food
                 self.player.eat_food = False
+            # Если мы с сервера получили онформацию, что другой игрок не ел
+            # еду (т.е получил наше сообщение о том, что мы съели еду),
+            # то отключаем таймер
             if self.player.eat_food and not self.player_2.eat_food:
                 self.start_time_out -= self.wait_delay
+            # Однако из-за задержек может случится, что за время тайм-аута
+            # другой игрок еще не получил сообщение о том, что мы съели еду,
+            # и мы получим старую информацию о еде. Однако спустя пару
+            # мгновений другой игрок получает информацию о том, что мы съели
+            # еду и начинает на отправлять данные, что он не ел еду
+            # (а мы уже начали считать, что мы не ели еду). Т.е получается,
+            # что никто еду не ел. В результате этого на карте у игроков еда
+            # появляется в двух разных местах.
+            # Чтобы избежать этого мы запоминаем ел ли игрок в предыдущий раз
+            # еду. И когда происходит вышеописанное событие, то мы
+            # устанавливаем флаги по предыдущим данным.
+            if not self.player.eat_food and not self.player_2.eat_food and\
+                    time_delta > self.wait_delay:
+                self.player.eat_food = self.player.last_eat_food
             # Если наш игрок не ел еду, то мы устанавливаем ему
             # значения принятые из сервера
             if not self.player.eat_food and self.player_2.eat_food:
                 self.food.set_data(data)
-            print('2', self.player.eat_food, self.player_2.eat_food)
+            print('2', self.player.eat_food, self.player_2.eat_food,
+                  time_delta > self.wait_delay)
         # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
         # поступают, то мы убиваем этого игрока.
         # Т.е считаем его за отключившегося
@@ -217,7 +243,7 @@ class Snake:
         self.color = color
         self.killed = False
 
-        self.eat_food = False
+        self.eat_food = self.last_eat_food = False
 
         self.difficult_delta = 2
         self.points = 0
