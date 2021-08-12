@@ -169,6 +169,10 @@ class GameOnline(Game):
         # Если наш игрок съел еду, то добавляем в словарь данные о еде
         if self.player.eat_food:
             data.update(self.food.get_data())
+        data.update({
+            'eat_delay':
+                pygame.time.get_ticks()
+                - self.start_time_out < self.wait_delay})
         return data
 
     def set_data(self, data):
@@ -189,28 +193,14 @@ class GameOnline(Game):
             # игрок съел еду, а значит мы должны установить флаг о том, что
             # еду мы не ели
             if self.player_2.eat_food and self.player.eat_food and \
-                    time_delta > self.wait_delay:
-                self.player.last_eat_food = self.player.eat_food
+                    data['eat_delay']:
                 self.player.eat_food = False
             # Если мы с сервера получили онформацию, что другой игрок не ел
             # еду (т.е получил наше сообщение о том, что мы съели еду),
             # то отключаем таймер
             if self.player.eat_food and not self.player_2.eat_food:
                 self.start_time_out -= self.wait_delay
-            # Однако из-за задержек может случится, что за время тайм-аута
-            # другой игрок еще не получил сообщение о том, что мы съели еду,
-            # и мы получим старую информацию о еде. Однако спустя пару
-            # мгновений другой игрок получает информацию о том, что мы съели
-            # еду и начинает на отправлять данные, что он не ел еду
-            # (а мы уже начали считать, что мы не ели еду). Т.е получается,
-            # что никто еду не ел. В результате этого на карте у игроков еда
-            # появляется в двух разных местах.
-            # Чтобы избежать этого мы запоминаем ел ли игрок в предыдущий раз
-            # еду. И когда происходит вышеописанное событие, то мы
-            # устанавливаем флаги по предыдущим данным.
-            if not self.player.eat_food and not self.player_2.eat_food and\
-                    time_delta > self.wait_delay:
-                self.player.eat_food = self.player.last_eat_food
+
             # Если наш игрок не ел еду, то мы устанавливаем ему
             # значения принятые из сервера
             if not self.player.eat_food and self.player_2.eat_food:
@@ -243,7 +233,7 @@ class Snake:
         self.color = color
         self.killed = False
 
-        self.eat_food = self.last_eat_food = False
+        self.eat_food = False
 
         self.difficult_delta = 2
         self.points = 0
