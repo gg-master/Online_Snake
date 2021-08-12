@@ -47,7 +47,7 @@ class Game:
         self.pl_text = None
 
         self.w, self.h = screen_size
-        self.map = pygame.Rect(0, 60, self.w, self.h)
+        self.map = pygame.Rect(0, 60, self.w, self.h - 60)
 
         self.players_pos = [(self.map.w // 2, self.map.y),
                             (self.map.w // 2, self.map.h - 50)]
@@ -107,7 +107,7 @@ class GameOnline(Game):
         # Счетчик пропуска кадров. Поистечении wait_count игра будет
         # считывать данные другого игркоа о событии "поедания еды"
         self.start_time_out = pygame.time.get_ticks()
-        self.wait_delay = 10_000
+        self.wait_delay = 1000
 
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
@@ -276,8 +276,7 @@ class Snake:
             self.kill()
         if self.head.top < self.game.map.top:
             self.kill()
-        if self.head.bottom + self.head.h >=\
-                self.game.map.bottom - self.head.h:
+        if self.head.bottom > self.game.map.bottom:
             self.kill()
         if any(map(lambda x: self.head.colliderect(x), self.parts)):
             self.kill()
