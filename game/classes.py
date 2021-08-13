@@ -104,13 +104,9 @@ class GameOnline(Game):
         super().__init__(screen_size, type_game[1])
         self.num_pl = type_game[1]
 
-        # Счетчик пропуска кадров. Поистечении wait_count игра будет
-        # считывать данные другого игркоа о событии "поедания еды"
-        self.start_time_out = pygame.time.get_ticks()
-        self.wait_delay = 1000
-
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
+
         # Получаем ответ об успешном подключении
         # TODO добавить доп окно если пароль был неверен или коннект
         #  с сервером не произошел
@@ -152,12 +148,8 @@ class GameOnline(Game):
 
     def update(self, event=None):
         super().update(event)
-        # Если еда уничтожена и наш игрок является тем, кто ее съел,
-        # то включаем отсчет, в течении которого игра будет посылать данные о
-        # том, что НАШ игрок съел еду, и не будет считывать инфу о
-        # состоянии другого игрока по отношении к еде
+        # Если мы съели еду, то респавним ее
         if not self.food.alive() and self.player.eat_food:
-            self.start_time_out = pygame.time.get_ticks()
             self.spawn_new_food()
         # Создаем данные, которые отправятся на сервер
         data = {'type': 'game_data', 'data': self.create_data()}
@@ -169,44 +161,34 @@ class GameOnline(Game):
         # Если наш игрок съел еду, то добавляем в словарь данные о еде
         if self.player.eat_food:
             data.update(self.food.get_data())
-        data.update({
-            'eat_delay':
-                pygame.time.get_ticks()
-                - self.start_time_out < self.wait_delay})
         return data
 
     def set_data(self, data):
         # Из полученных данных с сервера истанавливаем состояния
         # для еды и игрока
         if data is not None and 'type' not in data:
-            # TODO строчка для дебага
-            # print(data)
             self.player_2.set_data(data)
-            # Проверяем также и счетчит тайм-аута
-            now = pygame.time.get_ticks()
-            time_delta = now - self.start_time_out
             print('1', self.player.eat_food, self.player_2.eat_food,
-                  time_delta > self.wait_delay)
-            # Если наш игрок съел еду, и другой игрок съел еду, и
-            # время тайм-аута (в течении которого мы отправляли серверу
-            # информацию, что мы съели еду) вышло, то мы считаем, что другой
-            # игрок съел еду, а значит мы должны установить флаг о том, что
-            # еду мы не ели
-            if self.player_2.eat_food and self.player.eat_food and \
-                    data['eat_delay']:
+                  self.player.callbacks['eat_callback'])
+            # Если игрок съел еду и другой игрок съел еду, а также если
+            # другой игрок сигнализирует, что он сел еду недавно, то мы
+            # изменяем состояние себя и начинаем считать, что наш игрок не
+            # ел последнюю еду
+            if self.player.eat_food and self.player_2.eat_food and \
+                    data['eat_callback']:
                 self.player.eat_food = False
-            # Если мы с сервера получили онформацию, что другой игрок не ел
-            # еду (т.е получил наше сообщение о том, что мы съели еду),
-            # то отключаем таймер
+            # Если мы с сервера получили онформацию, что другой игрок
+            # изменил свое состояние
+            # (т.е получил наше сообщение о том, что мы съели еду),
+            # то выключаем коллбэк
             if self.player.eat_food and not self.player_2.eat_food:
-                self.start_time_out -= self.wait_delay
-
+                self.player.set_callbacks(eat_callback=False)
             # Если наш игрок не ел еду, то мы устанавливаем ему
             # значения принятые из сервера
             if not self.player.eat_food and self.player_2.eat_food:
                 self.food.set_data(data)
             print('2', self.player.eat_food, self.player_2.eat_food,
-                  time_delta > self.wait_delay)
+                  self.player.callbacks['eat_callback'])
         # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
         # поступают, то мы убиваем этого игрока.
         # Т.е считаем его за отключившегося
@@ -234,6 +216,7 @@ class Snake:
         self.killed = False
 
         self.eat_food = False
+        self.callbacks = {'eat_callback': False}
 
         self.difficult_delta = 2
         self.points = 0
@@ -246,6 +229,7 @@ class Snake:
             'killed_sn': self.killed,
             'eat_food': self.eat_food
         }
+        data.update(self.callbacks)
         if not self.killed:
             data.update(
                 {
@@ -301,6 +285,9 @@ class Snake:
 
     def eating_food(self, food):
         self.eat_food = True
+        # Устанавливаем коллбэк, чтобы сигнализировать другим игрокам о том,
+        # что мы съели еду
+        self.set_callbacks(eat_callback=True)
         food.kill()
         self.points += 1
         self.delay -= self.difficult_delta
@@ -329,6 +316,9 @@ class Snake:
 
     def alive(self):
         return not self.killed
+
+    def set_callbacks(self, **kwargs):
+        self.callbacks.update(**kwargs)
 
 
 class Food:
