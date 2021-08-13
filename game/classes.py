@@ -169,7 +169,7 @@ class GameOnline(Game):
         if data is not None and 'type' not in data:
             self.player_2.set_data(data)
             print('1', self.player.eat_food, self.player_2.eat_food,
-                  self.player.callbacks['eat_callback'])
+                  self.player.callbacks['eat_callback'], data['eat_callback'])
             # Если игрок съел еду и другой игрок съел еду, а также если
             # другой игрок сигнализирует, что он сел еду недавно, то мы
             # изменяем состояние себя и начинаем считать, что наш игрок не
@@ -177,6 +177,7 @@ class GameOnline(Game):
             if self.player.eat_food and self.player_2.eat_food and \
                     data['eat_callback']:
                 self.player.eat_food = False
+                self.player.set_callbacks(eat_callback=False)
             # Если мы с сервера получили онформацию, что другой игрок
             # изменил свое состояние
             # (т.е получил наше сообщение о том, что мы съели еду),
@@ -188,7 +189,7 @@ class GameOnline(Game):
             if not self.player.eat_food and self.player_2.eat_food:
                 self.food.set_data(data)
             print('2', self.player.eat_food, self.player_2.eat_food,
-                  self.player.callbacks['eat_callback'])
+                  self.player.callbacks['eat_callback'], data['eat_callback'])
         # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
         # поступают, то мы убиваем этого игрока.
         # Т.е считаем его за отключившегося
