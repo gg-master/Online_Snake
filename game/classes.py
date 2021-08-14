@@ -138,9 +138,6 @@ class GameOnline(Game):
                 raise self.netw.exception
         print(self.netw.get_conn_resp())
 
-        self.start_time = pygame.time.get_ticks()
-        self.connect_delay = 2000
-
         # Если мы являемся хостом (игроком № 1 в лобби) то сервер нам
         # возвращает код лобби, который отображается в правом верхнем углу
         if self.num_pl == 1:
@@ -239,8 +236,7 @@ class GameOnline(Game):
                 i: self.other_players[i] for i in
                 filter(lambda k: self.other_players[k].alive() and k in data,
                        self.other_players.keys())}
-        if not self.other_players and\
-                pygame.time.get_ticks() - self.start_time > self.connect_delay:
+        if not self.other_players and self.netw.is_get_first_msg:
             self.player.eat_food = True
 
     def disconnect(self):

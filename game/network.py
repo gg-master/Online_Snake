@@ -15,6 +15,8 @@ class Network:
         self.send_data = None
         self.received_data = None
 
+        self.is_get_first_msg = False
+
         self.close_conn = False
         self.last_vcode = ''
         self.conn_resp = None
@@ -77,6 +79,9 @@ class Network:
                         self.last_vcode = self.send_data['vcode']
                         await socket.send(json.dumps(self.send_data))
                         self.received_data = json.loads(await socket.recv())
+                        if not self.is_get_first_msg and \
+                                self.send_data['type'] == 'game_data':
+                            self.is_get_first_msg = True
                         # print(self.received_data)
         except Exception as e:
             self.exception = e
