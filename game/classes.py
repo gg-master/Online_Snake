@@ -138,6 +138,9 @@ class GameOnline(Game):
                 raise self.netw.exception
         print(self.netw.get_conn_resp())
 
+        self.start_time = pygame.time.get_ticks()
+        self.connect_delay = 2000
+
         # Если мы являемся хостом (игроком № 1 в лобби) то сервер нам
         # возвращает код лобби, который отображается в правом верхнем углу
         if self.num_pl == 1:
@@ -201,9 +204,9 @@ class GameOnline(Game):
             # изменяем состояние себя и начинаем считать, что наш игрок не
             # ел последнюю еду
             if self.player.eat_food and any(
-                    map(lambda key:
-                        self.other_players[key].eat_food and
-                        data[key]['eat_callback'], data.keys())):
+                    map(lambda player:
+                        player.eat_food and player.callbacks['eat_callback'],
+                        self.other_players.values())):
                 self.player.eat_food = False
                 self.player.set_callbacks(eat_callback=False)
             # Если мы с сервера получили онформацию, что другой игрок
@@ -236,7 +239,8 @@ class GameOnline(Game):
                 i: self.other_players[i] for i in
                 filter(lambda k: self.other_players[k].alive() and k in data,
                        self.other_players.keys())}
-        if not self.other_players:
+        if not self.other_players and\
+                pygame.time.get_ticks() - self.start_time > self.connect_delay:
             self.player.eat_food = True
 
     def disconnect(self):
@@ -297,6 +301,7 @@ class Snake:
             return None
         self.killed = data['killed_sn']
         self.eat_food = data['eat_food']
+        self.set_callbacks(eat_callback=data['eat_callback'])
         if not self.killed:
             self.head.x, self.head.y = data['head']
             self.parts = [pygame.Rect((i[0], i[1]), (self.w, self.h))
