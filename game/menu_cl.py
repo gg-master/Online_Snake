@@ -135,11 +135,47 @@ class CodeEntryMenu(Menu):
     def update(self, event=None):
         if event is not None:
             if event.type == pygame.USEREVENT:
-                if event.ui_element == self.join_server_btn:
-                    text = self.line.get_text()
-                    if self.line.validate_text_string(text):
-                        self.client.type_game = f'2_2_{text}'
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == self.join_server_btn:
+                        text = self.line.get_text()
+                        if self.line.validate_text_string(text):
+                            self.client.type_game = f'2_2_{text}'
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.parent.ce_menu = None
+        super().update(event)
+
+
+class ErrorWindow(Menu):
+    def __init__(self, client, screen_size, text):
+        super().__init__(screen_size)
+        self.client = client
+
+        self.line_h = 200
+        self.line_w = 50
+
+        self.label = pygame_gui.elements.ui_label.UILabel(
+            relative_rect=pygame.Rect((0, 0),
+                                      (screen_size[0], self.line_h)),
+            text=text,
+            manager=self.manager)
+
+        self.back_to_menu_btn = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((screen_size[0] // 2 - self.btn_h // 2,
+                                       screen_size[1] // 2 + self.btn_w // 2),
+                                      (self.btn_h, self.btn_w)),
+            text='В меню',
+            manager=self.manager)
+
+    def update(self, event=None):
+        if event is not None:
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == self.back_to_menu_btn:
+                        self.client.menu = MainMenu(self.client,
+                                                    self.screen_size)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.client.menu = MainMenu(self.client,
+                                                self.screen_size)
         super().update(event)

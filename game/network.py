@@ -9,8 +9,8 @@ from _thread import *
 class Network:
     def __init__(self):
         super().__init__()
-        # self.addr = "ws://localhost:8080"
-        self.addr = "ws://my-server-on-websockets.herokuapp.com"
+        self.addr = "ws://localhost:8080"
+        # self.addr = "ws://my-server-on-websockets.herokuapp.com"
 
         self.send_data = None
         self.received_data = None
@@ -18,18 +18,22 @@ class Network:
         self.close_conn = False
         self.last_vcode = ''
         self.conn_resp = None
+
+        self.exception = None
         # Запускаем новый поток, т.к asyncio.run() является
         # блокирующей функцией
         start_new_thread(self.start_async, ())
 
     def wait_received_data(self, *params):
         # Ожидаем нужные данные от сервера
-        # Прокручиваем полученную с сервера инфу пока не увидим нужным
-        # нам в нем параметр
+        # Прокручиваем полученную с сервера инфу пока не увидим нужные
+        # нам в нем параметры
         # ВВЕДЕНО Для иммитирования блокировки во время подключения к серверу
         while self.received_data is None \
                 or any(map(lambda x: x not in self.received_data, params)):
-            pass
+            if self.received_data is not None and \
+                    'except' in self.received_data:
+                raise Exception(self.received_data['except'])
         return self.received_data
 
     def get_received_data(self):
@@ -58,20 +62,25 @@ class Network:
         asyncio.run(self.server_listen())
 
     async def server_listen(self):
-        async with websockets.connect(self.addr) as socket:
-            # Ответ после подключения
-            self.conn_resp = json.loads(await socket.recv())
-            # Начинаем отправлять данные
-            while True:
-                if self.close_conn:
-                    return None
-                # Если изменились данные, то их необходимо отправить на сервер
-                if self.send_data is not None and \
-                        self.last_vcode != self.send_data['vcode']:
-                    self.last_vcode = self.send_data['vcode']
-                    await socket.send(json.dumps(self.send_data))
-                    self.received_data = json.loads(await socket.recv())
-                    # print(self.received_data)
+        try:
+            async with websockets.connect(self.addr) as socket:
+                # Ответ после подключения
+                self.conn_resp = json.loads(await socket.recv())
+                # Начинаем отправлять данные
+                while True:
+                    if self.close_conn:
+                        return None
+                    # Если изменились данные, то их необходимо отправить на
+                    # сервер
+                    if self.send_data is not None and \
+                            self.last_vcode != self.send_data['vcode']:
+                        self.last_vcode = self.send_data['vcode']
+                        await socket.send(json.dumps(self.send_data))
+                        self.received_data = json.loads(await socket.recv())
+                        # print(self.received_data)
+        except Exception as e:
+            self.exception = e
+            return
 
     def disconnect(self):
         self.close_conn = True

@@ -12,33 +12,28 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Lobby:
-    def __init__(self, server, host):
+    def __init__(self, server):
         self.server = server
-        self.host_user = host
         self.code = self.create_code()
 
-        self.send_data = None
-        self.received_data = None
-
         self.connected_players = []
-        self.max_connected_users = 1
+        self.max_connected_users = 5
 
+        server.add_new_lobby(self)
         print(f'Lobby created // code: {self.code}')
 
-    def set_send_data(self, data):
-        self.send_data = data
+    def get_users_data(self, except_user):
+        if len(self.connected_players) == 1:
+            return None
+        return {i.number: i.get_data() for i in
+                self.connected_players if i != except_user}
 
-    def set_received_data(self, data):
-        self.received_data = data
-
-    def get_send_data(self):
-        return self.send_data
-
-    def get_received_data(self):
-        return self.received_data
-
-    def ishost(self, user):
-        return user == self.host_user
+    def set_user_number(self, user):
+        used_numbers = [i.number for i in self.connected_players if i != user]
+        for number in range(1, self.max_connected_users + 1):
+            if number not in used_numbers:
+                user.set_number(number)
+                break
 
     def create_code(self):
         symbols = list(string.digits)
@@ -53,15 +48,27 @@ class Lobby:
     def join_user(self, user):
         if len(self.connected_players) < self.max_connected_users:
             self.connected_players.append(user)
+            user.set_lobby(self)
+            self.set_user_number(user)
+            print(f'User successful joined to {self}')
             return True
-        raise JoiningFailed('Joining is not possible. Too many players')
+        raise JoiningFailed('Присоединение к лобби невозможно. '
+                            'Слишком много игроков')
+
+    def exist_conn_players(self):
+        return bool(self.connected_players)
 
     def remove_user(self, user):
-        if self.ishost(user):
-            self.send_data = None
-        else:
-            self.received_data = None
-            self.connected_players.remove(user)
+        self.connected_players.remove(user)
+        user.disconnect()
+        if not self.exist_conn_players():
+            self.server.remove_lobby(self)
+
+    def __str__(self):
+        return f'Lobby {self.code}'
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class User:
@@ -71,11 +78,26 @@ class User:
 
         self.lobby = None
 
+        self.number = None
+        self.data = None
+
+    def set_data(self, data):
+        self.data = data
+
+    def get_data(self):
+        return self.data
+
     def get_addr(self):
         return self.addr
 
+    def set_number(self, number):
+        self.number = number
+
     def set_lobby(self, lobby: Lobby):
         self.lobby = lobby
+
+    def disconnect(self):
+        self.data = self.lobby = None
 
     @staticmethod
     def get_received_data(msg):
@@ -83,17 +105,22 @@ class User:
 
     async def send_data(self, data=None, command=None):
         if data is None and command is not None:
-            if command == 'lobby_code':
-                data = {'type': 'sys', 'lobby': 'success',
+            # Успешное подключение к серверу
+            if command == 'success_conn':
+                data = {'type': 'conn', 'conn': 'success'}
+            # Успешное создание лобби
+            elif command == 'lobby_code':
+                data = {'type': 'lobby', 'lobby': 'success_created',
                         'lobby_code': self.lobby.get_code()}
-            elif command == 'debug':
-                data = {'type': 'sys', 'debug_inf': 'отправленные данные'}
-            elif command == 'success_conn':
-                data = {'type': 'sys', 'connection': 'success'}
+            # Успешное подключение к лобби
             elif command == 'success_joining':
-                data = {'type': 'sys', 'joining': 'success'}
+                data = {'type': 'lobby', 'lobby': 'joining_success',
+                        'lobby_code': self.lobby.get_code(),
+                        'number': self.number}
             elif command == 'NoneTypeData':
-                data = {'type': 'sys', 'excpt': 'NoneTypeData'}
+                data = {'type': 'except', 'except': 'NoneTypeData'}
+            elif command == 'debug':
+                data = {'type': 'debug', 'debug': 'отправленные данные'}
         await self.socket.send(json.dumps(data))
 
     def __str__(self):
@@ -107,23 +134,22 @@ class Server:
 
     def get_lobby_by_code(self, code):
         if code not in self.lobbies:
-            raise LobbyNotFound('Лобби не было найдено')
+            raise LobbyNotFound('Лобби не найдено. Лобби или несуществует или '
+                                'был неправильно введен пароль')
         return self.lobbies[code]
 
     def check_lobbies_code(self, code: str) -> bool:
-        if code in self.lobbies:
-            return True
-        return False
+        return code in self.lobbies
 
     def add_new_lobby(self, lobby):
         self.lobbies[lobby.get_code()] = lobby
 
+    def remove_lobby(self, lobby):
+        del self.lobbies[lobby.get_code()]
+
     def remove_user(self, user):
         self.users.remove(user)
         if user.lobby is not None:
-            # TODO Доработать если отключается хост
-            if user.lobby.ishost(user):
-                del self.lobbies[user.lobby.get_code()]
             user.lobby.remove_user(user)
 
     @staticmethod
@@ -142,6 +168,7 @@ class Server:
         return websockets.serve(self.handler, self.get_host(), self.get_port())
 
     async def handler(self, websocket, path):
+        # print(f'Users: {self.users} // Lobbies: {self.lobbies}')
         user = User(websocket)
         self.users.add(user)
         print(f'Connected to: {user.get_addr()}')
@@ -155,36 +182,25 @@ class Server:
                     continue
                 # Если была подана команда на создание лобби, то создаем его
                 if received_data['type'] == 'create_lobby':
-                    lobby = Lobby(host=user, server=self)
-                    self.add_new_lobby(lobby)
-                    user.set_lobby(lobby)
+                    lobby = Lobby(self)
+                    lobby.join_user(user)
                     await user.send_data(command='lobby_code')
                 elif received_data['type'] == 'join_player':
-                    # TODO добавить проверку является ли
-                    #  пользователь уже хостом лобби
                     code = received_data['lobby_code']
                     try:
                         lobby = self.get_lobby_by_code(code)
-                        user.lobby = lobby if lobby.join_user(user) else None
+                        lobby.join_user(user)
                         await user.send_data(command='success_joining')
                     except Exception as e:
-                        await user.send_data({'type': 'sys',
-                                              'joining': str(e)})
+                        await user.send_data({'type': 'except',
+                                              'except': str(e)})
                 elif received_data['type'] == 'game_data':
                     if user.lobby is None:
-                        await user.send_data({'type': 'sys',
-                                              'lobby': 'Lobby not found'})
+                        await user.send_data({'type': 'except',
+                                              'except': 'Лобби не найдено'})
                         continue
-                    # Если пользователь является хостом, то он устанавливает
-                    # send данные и получает received данные
-                    if user.lobby.ishost(user):
-                        user.lobby.set_send_data(received_data['data'])
-                        await user.send_data(user.lobby.get_received_data())
-                    # Если пользователь не является хостом, то от устанавливает
-                    # received данные и получает send данные
-                    else:
-                        user.lobby.set_received_data(received_data['data'])
-                        await user.send_data(user.lobby.get_send_data())
+                    user.set_data(received_data['data'])
+                    await user.send_data(user.lobby.get_users_data(user))
                 else:
                     await user.send_data(command='debug')
             except Exception as e:
@@ -194,6 +210,7 @@ class Server:
         try:
             self.remove_user(user)
             print(f"{user} вышел")
+            # print(f'Users: {self.users} // Lobbies: {self.lobbies}')
         except Exception as e:
             print(e)
             pass
