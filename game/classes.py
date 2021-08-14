@@ -201,10 +201,9 @@ class GameOnline(Game):
             # изменяем состояние себя и начинаем считать, что наш игрок не
             # ел последнюю еду
             if self.player.eat_food and any(
-                    map(lambda key, val: val.eat_food and data[key][
-                        'eat_callback'],
-                        self.other_players.keys(),
-                        self.other_players.values())):
+                    map(lambda key:
+                        self.other_players[key].eat_food and
+                        data[key]['eat_callback'], data.keys())):
                 self.player.eat_food = False
                 self.player.set_callbacks(eat_callback=False)
             # Если мы с сервера получили онформацию, что другой игрок
