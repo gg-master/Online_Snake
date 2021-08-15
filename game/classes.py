@@ -1,7 +1,12 @@
+import os
+import socket
+
 import pygame
 import random
 from menu_cl import MainMenu, ErrorWindow
 from network import Network
+
+from tools import resourcePath
 
 
 class Client:
@@ -27,7 +32,7 @@ class Client:
                     try:
                         self.game = GameOnline(self.screen.get_size(),
                                                type_game)
-                    except ConnectionRefusedError as e:
+                    except (ConnectionRefusedError, socket.gaierror) as e:
                         self.reset_game()
                         self.menu = ErrorWindow(self, self.screen.get_size(),
                                                 'Неудалось подключиться к '
@@ -57,8 +62,8 @@ class Client:
 class Game:
     def __init__(self, screen_size, player_number):
         self.player_number = player_number - 1
-
-        self.font = pygame.font.Font(None, 40)
+        print(os.getcwd())
+        self.font = pygame.font.Font(resourcePath('.fonts/arial.ttf'), 25)
         self.pl_text = None
 
         self.w, self.h = screen_size
@@ -128,7 +133,7 @@ class GameOnline(Game):
     def __init__(self, screen_size, type_game: list):
         self.num_pl = type_game[1]
 
-        code_font = pygame.font.Font(None, 20)
+        code_font = pygame.font.Font(resourcePath('.fonts/arial.ttf'), 20)
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
 
@@ -195,7 +200,8 @@ class GameOnline(Game):
             self.create_players(data)
             for k, v in data.items():
                 self.other_players[k].set_data(v)
-            print(f'1 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
+            print(
+                f'1 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
             # Если игрок съел еду и другой игрок съел еду, а также если
             # другой игрок сигнализирует, что он сел еду недавно, то мы
             # изменяем состояние себя и начинаем считать, что наш игрок не
@@ -221,7 +227,8 @@ class GameOnline(Game):
                        and v['eat_food']]
                 if arr:
                     self.food.set_data(arr[0])
-            print(f'2 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
+            print(
+                f'2 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
 
         # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
         # поступают, то мы убиваем этого игрока.
