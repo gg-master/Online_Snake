@@ -6,7 +6,7 @@ import random
 from menu_cl import MainMenu, ErrorWindow
 from network import Network
 
-from tools import resourcePath
+from tools import resourcePath, get_time
 
 
 class Client:
@@ -210,8 +210,14 @@ class GameOnline(Game):
                     map(lambda player:
                         player.eat_food and player.callbacks['eat_callback'],
                         self.other_players.values())):
+                if self.player.callbacks['eat_callback'] and (
+                        self.player.callbacks['eat_callback'] <
+                        self.get_pl_by_lambda(
+                                lambda p: p.eat_food and p.callbacks[
+                                    'eat_callback']).callbacks[
+                            'eat_callback']):
+                    self.player.set_callbacks(eat_callback=False)
                 self.player.eat_food = False
-                self.player.set_callbacks(eat_callback=False)
             # Если мы с сервера получили онформацию, что другой игрок
             # изменил свое состояние
             # (т.е получил наше сообщение о том, что мы съели еду),
@@ -234,6 +240,11 @@ class GameOnline(Game):
         # поступают, то мы убиваем этого игрока.
         # Т.е считаем его за отключившегося
         self.check_disc_players(data)
+
+    def get_pl_by_lambda(self, func):
+        for i in self.other_players.values():
+            if func(i):
+                return i
 
     def check_disc_players(self, data):
         if data is None:
@@ -351,7 +362,7 @@ class Snake:
         self.eat_food = True
         # Устанавливаем коллбэк, чтобы сигнализировать другим игрокам о том,
         # что мы съели еду
-        self.set_callbacks(eat_callback=True)
+        self.set_callbacks(eat_callback=get_time())
         food.kill()
         self.points += 1
         self.delay -= self.difficult_delta
