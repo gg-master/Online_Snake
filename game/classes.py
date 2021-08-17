@@ -346,13 +346,13 @@ class Snake:
 
     def check_collide(self):
         if self.head.left < self.game.map.left:
-            self.kill()
+            self.head.right = self.game.map.right
         if self.head.right > self.game.map.right:
-            self.kill()
+            self.head.left = self.game.map.left
         if self.head.top < self.game.map.top:
-            self.kill()
+            self.head.bottom = self.game.map.bottom
         if self.head.bottom > self.game.map.bottom:
-            self.kill()
+            self.head.top = self.game.map.top
         if any(map(lambda x: self.head.colliderect(x), self.parts)):
             self.kill()
         if self.head.colliderect(self.game.food.rect):
