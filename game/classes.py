@@ -231,9 +231,9 @@ class GameOnline(Game):
             # значения принятые из сервера
             if not self.player.eat_food and any(
                     map(lambda pl: pl.eat_food, self.other_players.values())):
-                arr = sorted(self.other_players.values(),
+                arr = sorted(data.values(),
                              key=lambda x:
-                             (x.callbacks['eat_callback'], int(x.eat_food)),
+                             (x['eat_callback'], int(x['eat_food'])),
                              reverse=True)
                 if arr:
                     self.food.set_data(arr[0])
