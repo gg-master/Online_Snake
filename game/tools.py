@@ -1,5 +1,6 @@
 import os
 import sys
+import datetime
 
 
 def resourcePath(relativePath):
@@ -11,3 +12,7 @@ def resourcePath(relativePath):
         basePath = os.path.abspath(".")
 
     return os.path.join(basePath, relativePath)
+
+
+def get_time():
+    return round(datetime.datetime.utcnow().timestamp() * 1000)
