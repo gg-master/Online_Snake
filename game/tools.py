@@ -1,6 +1,7 @@
 import os
 import sys
-import datetime
+import calendar
+import time
 
 
 def resourcePath(relativePath):
@@ -15,4 +16,6 @@ def resourcePath(relativePath):
 
 
 def get_time():
-    return round(datetime.datetime.utcnow().timestamp() * 1000)
+    # Возвращаем время по гринвичу. Вроде выдает одинаковый результат с
+    # разных точек мира
+    return calendar.timegm(time.gmtime())
