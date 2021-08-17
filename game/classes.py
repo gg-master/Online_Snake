@@ -217,7 +217,9 @@ class GameOnline(Game):
                                     'eat_callback']).callbacks[
                             'eat_callback']):
                     self.player.set_callbacks(eat_callback=False)
-                self.player.eat_food = False
+                    self.player.eat_food = False
+                elif not self.player.callbacks['eat_callback']:
+                    self.player.eat_food = False
             # Если мы с сервера получили онформацию, что другой игрок
             # изменил свое состояние
             # (т.е получил наше сообщение о том, что мы съели еду),
