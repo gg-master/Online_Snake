@@ -242,7 +242,7 @@ class GameOnline(Game):
             # временому коду
             if not self.player.eat_food and any(
                     map(lambda pl: pl.eat_food, self.other_players.values())):
-                arr = sorted(data.values(),
+                arr = sorted(filter(lambda x: x is not None, data.values()),
                              key=lambda x:
                              (x['eat_callback'], int(x['eat_food'])),
                              reverse=True)
