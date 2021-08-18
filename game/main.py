@@ -49,15 +49,7 @@ def main():
         pygame.display.flip()
         clock.tick(FPS)
     pygame.quit()
-# 1 Snake False - False // 1: Snake True - 1629224450/2: Snake True - 1629221070
-# 2 Snake False - False // 1: Snake True - 1629224450/2: Snake True - 1629221070
-# 1 Snake False - False // 1: Snake False - 1629224450/2: Snake False - False
-# 2 Snake False - False // 1: Snake False - 1629224450/2: Snake False - False
 
-# 1 Snake False - False // 1: Snake False - 1629224450/2: Snake False - False
-# 2 Snake False - False // 1: Snake False - 1629224450/2: Snake False - False
-# 1 Snake True - 1629224455 // 1: Snake False - 1629224450/2: Snake False - False
-# 2 Snake True - False // 1: Snake False - 1629224450/2: Snake False - False
 
 if __name__ == '__main__':
     WIDTH, HEIGHT = 950, 750

@@ -197,38 +197,49 @@ class GameOnline(Game):
         # Из полученных данных с сервера истанавливаем состояния
         # для еды и игрока
         if data is not None and 'type' not in data:
+            # Создаем игроков, которые присоеденились к серверу
             self.create_players(data)
+            # Устанавливаем всем игрокам последние данные с сервера
             for k, v in data.items():
                 self.other_players[k].set_data(v)
+            # Обновляем коллбэки. Удаляем неиспользуемые, добавляем новые
+            self.update_callbacks(data)
             print(
                 f'1 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
+
             # Если игрок съел еду и другой игрок съел еду, а также если
             # другой игрок сигнализирует, что он сел еду недавно, то мы
             # изменяем состояние себя и начинаем считать, что наш игрок не
             # ел последнюю еду
             if self.player.eat_food and any(
-                    map(lambda player:
-                        player.eat_food and player.callbacks['eat_callback'],
+                    map(lambda p: p.eat_food and p.callbacks['eat_callback'],
                         self.other_players.values())):
-                if self.player.callbacks['eat_callback'] and (
-                        self.player.callbacks['eat_callback'] <
-                        self.get_pl_by_lambda(
-                                lambda p: p.eat_food and p.callbacks[
-                                    'eat_callback']).callbacks[
-                            'eat_callback']):
+                player = self.get_sort_pl_by_lambda(
+                    lambda p: p.eat_food and p.callbacks['eat_callback'])
+
+                if self.player.callbacks['eat_callback'] \
+                        and (self.player.callbacks['eat_callback'] <
+                             player.callbacks['eat_callback']) and \
+                        self.player.callbacks['eat_callback'] in \
+                        player.return_callbacks:
                     self.player.set_callbacks(eat_callback=False)
                     self.player.eat_food = False
                 elif not self.player.callbacks['eat_callback']:
                     self.player.eat_food = False
-            # Если мы с сервера получили онформацию, что другой игрок
-            # изменил свое состояние
-            # (т.е получил наше сообщение о том, что мы съели еду),
-            # то выключаем коллбэк
-            if self.player.eat_food and all(map(lambda pl: not pl.eat_food,
-                                                self.other_players.values())):
+
+            # Если все игроки добавили наш коллбэк в return_callbacks, то мы
+            # считаем что все игроки получили наше сообщение и мы можем
+            # выключить коллбэк
+            if self.player.eat_food and \
+                    all(map(lambda pl:
+                            self.player.callbacks['eat_callback']
+                            in pl.return_callbacks,
+                            self.other_players.values())):
                 self.player.set_callbacks(eat_callback=False)
+
             # Если наш игрок не ел еду, то мы устанавливаем ему
-            # значения принятые из сервера
+            # значения принятые из сервера, которые являются новейшими по
+            # временому коду
             if not self.player.eat_food and any(
                     map(lambda pl: pl.eat_food, self.other_players.values())):
                 arr = sorted(data.values(),
@@ -237,15 +248,13 @@ class GameOnline(Game):
                              reverse=True)
                 if arr:
                     self.food.set_data(arr[0])
-            print(
-                f'2 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
 
-        # Если игрок еще жив(отрисовывается на карте), а данные с сервера не
-        # поступают, то мы убиваем этого игрока.
-        # Т.е считаем его за отключившегося
+            print(f'2 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
+
+        # Проверяем отключившихся игроков
         self.check_disc_players(data)
 
-    def get_pl_by_lambda(self, func):
+    def get_sort_pl_by_lambda(self, func):
         for i in self.other_players.values():
             if func(i):
                 return i
@@ -274,6 +283,12 @@ class GameOnline(Game):
                 snake.kill()
                 self.other_players[i] = snake
 
+    def update_callbacks(self, data):
+        self.player.return_callbacks = list(
+            map(lambda x: x['eat_callback'],
+                filter(lambda x: x is not None and x['eat_callback'],
+                       data.values())))
+
 
 class Snake:
     def __init__(self, game, pos, color):
@@ -293,6 +308,7 @@ class Snake:
 
         self.eat_food = False
         self.callbacks = {'eat_callback': False}
+        self.return_callbacks = []
 
         self.difficult_delta = 2
         self.points = 0
@@ -303,7 +319,8 @@ class Snake:
     def get_data(self):
         data = {
             'killed_sn': self.killed,
-            'eat_food': self.eat_food
+            'eat_food': self.eat_food,
+            'return_callbacks': self.return_callbacks
         }
         data.update(self.callbacks)
         if not self.killed:
@@ -319,6 +336,7 @@ class Snake:
             return None
         self.killed = data['killed_sn']
         self.eat_food = data['eat_food']
+        self.return_callbacks = data['return_callbacks']
         self.set_callbacks(eat_callback=data['eat_callback'])
         if not self.killed:
             self.head.x, self.head.y = data['head']
@@ -400,7 +418,8 @@ class Snake:
         self.callbacks.update(**kwargs)
 
     def __str__(self):
-        return f'Snake {self.eat_food} - {self.callbacks["eat_callback"]}'
+        return f'Snake {self.eat_food} - ' \
+               f'{self.callbacks["eat_callback"]} - {self.return_callbacks}'
 
     def __repr__(self):
         return self.__str__()
