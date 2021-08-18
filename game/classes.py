@@ -204,8 +204,8 @@ class GameOnline(Game):
                 self.other_players[k].set_data(v)
             # Обновляем коллбэки. Удаляем неиспользуемые, добавляем новые
             self.update_callbacks(data)
-            print(
-                f'1 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
+            print(f'1 {self.player} // '
+                  f'{"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
 
             # Если игрок съел еду и другой игрок съел еду, а также если
             # другой игрок сигнализирует, что он сел еду недавно, то мы
@@ -249,13 +249,17 @@ class GameOnline(Game):
                 if arr:
                     self.food.set_data(arr[0])
 
-            print(f'2 {self.player} // {"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
+            print(f'2 {self.player} // '
+                  f'{"/".join([f"{k}: {v}" for k, v in self.other_players.items()])}')
 
         # Проверяем отключившихся игроков
         self.check_disc_players(data)
 
     def get_sort_pl_by_lambda(self, func):
-        for i in self.other_players.values():
+        for i in sorted(
+                self.other_players.values(),
+                key=lambda x: (x.callbacks['eat_callback'], int(x.eat_food)),
+                reverse=True):
             if func(i):
                 return i
 
