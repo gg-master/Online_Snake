@@ -6,7 +6,7 @@ import random
 from menu_cl import MainMenu, ErrorWindow
 from network import Network
 
-from tools import resourcePath, get_time
+from tools import resourcePath
 
 
 class Client:
@@ -151,8 +151,7 @@ class GameOnline(Game):
             self.netw.set_send_get_recv({'type': 'create_lobby'})
             server_resp = self.netw.wait_received_data('lobby_code')
 
-            self.player.eat_food = get_time()
-            print(self.player)
+            self.player.eat_food = True
         # Если игрок является №2 в лобби, то игрок отсылая код лобби,
         # присоединяется к лобби
         else:
@@ -239,7 +238,7 @@ class GameOnline(Game):
                 filter(lambda k: self.other_players[k].alive() and k in data,
                        self.other_players.keys())}
         if not self.other_players and self.netw.is_get_first_msg:
-            self.player.eat_food = get_time()
+            self.player.eat_food = True
 
     def disconnect(self):
         self.netw.disconnect()
@@ -342,7 +341,7 @@ class Snake:
     def eating_food(self, food):
         # Получаем время, в которое мы съели еду, чтобы другие игроки могли
         # понять, чью еду отрисовывать
-        self.eat_food = get_time()
+        self.eat_food = True
 
         food.kill()
         self.points += 1

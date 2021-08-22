@@ -1,6 +1,7 @@
 import asyncio
 import random
 import string
+import time
 
 import websockets
 import logging
@@ -82,6 +83,9 @@ class User:
         self.data = None
 
     def set_data(self, data):
+        # Тестовый вариант
+        if data['eat_food']:
+            data['eat_food'] = time.time()
         self.data = data
 
     def get_data(self):
