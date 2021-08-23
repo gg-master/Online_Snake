@@ -1,3 +1,4 @@
 websockets
 pygame
 pygame_gui
+ntplib
