@@ -22,4 +22,4 @@ def get_time_delta():
     import ntplib
     client = ntplib.NTPClient()
     response = client.request('pool.ntp.org')
-    return time.time() - response.tx_time
+    return response.tx_time - time.time()
