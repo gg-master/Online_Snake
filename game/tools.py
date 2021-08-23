@@ -1,4 +1,5 @@
 import os
+import time
 import sys
 
 
@@ -11,3 +12,14 @@ def resourcePath(relativePath):
         basePath = os.path.abspath(".")
 
     return os.path.join(basePath, relativePath)
+
+
+def get_time(time_delta):
+    return round((time.time() + time_delta) * 1000)
+
+
+def get_time_delta():
+    import ntplib
+    client = ntplib.NTPClient()
+    response = client.request('pool.ntp.org')
+    return time.time() - response.tx_time

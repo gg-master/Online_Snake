@@ -6,7 +6,7 @@ import random
 from menu_cl import MainMenu, ErrorWindow
 from network import Network
 
-from tools import resourcePath
+from tools import resourcePath, get_time, get_time_delta
 
 
 class Client:
@@ -136,6 +136,7 @@ class GameOnline(Game):
         code_font = pygame.font.Font(resourcePath('.fonts/arial.ttf'), 20)
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
+        self.time_delta = get_time_delta()
 
         # Получаем ответ об успешном подключении
         while self.netw.get_conn_resp() is None:
@@ -151,7 +152,7 @@ class GameOnline(Game):
             self.netw.set_send_get_recv({'type': 'create_lobby'})
             server_resp = self.netw.wait_received_data('lobby_code')
 
-            self.player.eat_food = True
+            self.player.eat_food = get_time(self.time_delta)
         # Если игрок является №2 в лобби, то игрок отсылая код лобби,
         # присоединяется к лобби
         else:
@@ -238,7 +239,7 @@ class GameOnline(Game):
                 filter(lambda k: self.other_players[k].alive() and k in data,
                        self.other_players.keys())}
         if not self.other_players and self.netw.is_get_first_msg:
-            self.player.eat_food = True
+            self.player.eat_food = get_time(self.time_delta)
 
     def disconnect(self):
         self.netw.disconnect()
@@ -341,7 +342,7 @@ class Snake:
     def eating_food(self, food):
         # Получаем время, в которое мы съели еду, чтобы другие игроки могли
         # понять, чью еду отрисовывать
-        self.eat_food = True
+        self.eat_food = get_time(self.game.time_delta)
 
         food.kill()
         self.points += 1
