@@ -69,6 +69,8 @@ class Game:
         self.w, self.h = screen_size
         self.map = pygame.Rect(0, 60, self.w, self.h - 60)
 
+        self.time_delta = get_time_delta()
+
         self.players_pos = [
             (self.map.w // 2, self.map.y + 20),
             (self.map.w // 2, self.map.y + self.map.h - 50),
@@ -136,7 +138,6 @@ class GameOnline(Game):
         code_font = pygame.font.Font(resourcePath('.fonts/arial.ttf'), 20)
         # Создаем класс, который будет общаться с сервером
         self.netw = Network()
-        self.time_delta = get_time_delta()
 
         # Получаем ответ об успешном подключении
         while self.netw.get_conn_resp() is None:
